@@ -19,6 +19,7 @@
 #include "vector.dm"
 #include "reagent_ids.dm"
 #include "smelting.dm"
+#include "matsci.dm"
 #include "supermatter_airflow.dm"
 #include "languages.dm"
 #include "hour_calculations.dm"
