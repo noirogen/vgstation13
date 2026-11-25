@@ -158,6 +158,7 @@
 	perunit = M.cc_per_sheet
 	starting_materials = list()
 	starting_materials[mat_id] = M.cc_per_sheet
+	recipes = matsci_sheet_recipes(M)
 	return TRUE
 
 /obj/item/stack/sheet/mineral/procgen/proc/set_material(var/new_mat_id)

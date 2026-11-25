@@ -109,6 +109,14 @@ var/datum/matsci_settings/matsci_settings_datum
 	var/list/trait_strength_min_by_tier = list(0.5, 0.7, 0.9, 1.1)
 	var/list/trait_strength_max_by_tier = list(1.0, 1.2, 1.5, 1.8)
 
+	// ---------------- Sheet crafting ----------------
+	/// Glass-primary variants (windows, windoors, table doors, glass floors) get the glass version's health times
+	/// (material armor / glass armor) times (material quality / glass quality). Each ratio is clamped to this range.
+	var/glass_stat_ratio_min = 0.5
+	var/glass_stat_ratio_max = 2
+	/// Health healed per process tick by the self-repairing trait, times the trait's strength.
+	var/self_repair_per_tick = 1
+
 	// ---------------- Economy ----------------
 	/// Value per sheet before stat quality, indexed by tier. For scale: iron 0.2, plasma 1, gold/silver 6, diamond/phazon 50.
 	var/list/value_by_tier = list(0.5, 4, 20, 40)

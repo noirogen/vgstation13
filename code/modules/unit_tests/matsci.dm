@@ -122,3 +122,218 @@
 	assert_eq(sheet.amount, 7)
 	assert_eq(ore.getAmount(M.id), 5)
 	qdel(ore)
+
+/// How many things of exactly this type (summing stack amounts) are on T, optionally only of one procgen material. Ignores deleted things.
+/proc/matsci_test_count(var/turf/T, var/thing_type, var/mat_id)
+	. = 0
+	for(var/atom/movable/A in T)
+		if(A.gcDestroyed || A.type != thing_type)
+			continue
+		if(mat_id && (!("mat_id" in A.vars) || A.vars["mat_id"] != mat_id))
+			continue
+		if(istype(A, /obj/item/stack))
+			var/obj/item/stack/S = A
+			. += S.amount
+		else
+			. += 1
+
+/datum/unit_test/matsci/sheet_recipes/start()
+	var/datum/material/procgen/plain = matsci_generate_material(1, list(MAT_IRON), list())
+	var/datum/material/procgen/glassy = matsci_generate_material(1, list(MAT_GLASS), list())
+	var/obj/item/stack/sheet/mineral/procgen/plain_sheet = new(null, 1, plain.id)
+	var/obj/item/stack/sheet/mineral/procgen/glass_sheet = new(null, 1, glassy.id)
+	if(!(blacksmithing_recipes in plain_sheet.recipes))
+		fail("Procgen sheets can't be used for blacksmithing")
+	if(!(blacksmithing_recipes in glass_sheet.recipes))
+		fail("Glass-primary procgen sheets can't be used for blacksmithing")
+	var/found_window = FALSE
+	for(var/datum/stack_recipe/R in glass_sheet.recipes)
+		if(R.result_type == /obj/structure/window/procgen/loose)
+			found_window = TRUE
+	if(!found_window)
+		fail("Glass-primary procgen sheets can't make windows")
+	for(var/datum/stack_recipe/R in plain_sheet.recipes)
+		if(R.result_type == /obj/structure/window/procgen/loose)
+			fail("Procgen sheets without the glass primary can make windows")
+		// Recipes with these set are hidden on maps without the matching z-level
+		if(R.z_up_required || R.z_down_required)
+			fail("Procgen recipe [R.title] needs a z-level above or below")
+	qdel(plain_sheet)
+	qdel(glass_sheet)
+
+/datum/unit_test/matsci/glass_variants/start()
+	var/turf/T = run_loc_bottom_left
+	var/datum/material/procgen/M = matsci_generate_material(2, list(MAT_GLASS), list())
+	var/datum/material/procgen/not_glass = matsci_generate_material(2, list(MAT_IRON), list())
+	var/obj/structure/window/procgen/W = new /obj/structure/window/procgen/loose(T)
+	if(W.matsci_set_material(not_glass.id))
+		fail("A window was made of a material without the glass primary")
+	if(!W.matsci_set_material(M.id))
+		fail("A window couldn't be made of a glass-primary material")
+		return
+	var/expected = max(1, round(initial(W.health) * matsci_glass_health_mult(M), 1))
+	assert_eq(W.maxHealth, expected)
+	assert_eq(W.health, expected)
+	if(!findtext(W.name, lowertext(M.name)))
+		fail("Procgen window is called [W.name]")
+
+	W.drop_glass_sheets(T)
+	assert_eq(matsci_test_count(T, /obj/item/stack/sheet/mineral/procgen, M.id), W.sheetamount)
+
+	var/glass_shards = matsci_test_count(T, /obj/item/weapon/shard)
+	var/obj/item/weapon/shard/procgen/shard = W.spawnBrokenPieces()
+	if(!istype(shard))
+		fail("Procgen window didn't break into a procgen shard")
+	else
+		assert_eq(shard.mat_id, M.id)
+		assert_eq(shard.glass, M.sheettype)
+		assert_eq(shard.materials.getAmount(M.id), M.cc_per_sheet)
+		assert_eq(shard.materials.getAmount(MAT_GLASS), 0)
+	if(matsci_test_count(T, /obj/item/weapon/shard) != glass_shards)
+		fail("Procgen window also dropped a glass shard")
+	qdel(W)
+
+	// Windoor materials survive the trip between assembly and windoor, secure or not.
+	var/obj/structure/windoor_assembly/procgen/WA = new(T)
+	WA.matsci_set_material(M.id)
+	var/obj/machinery/door/window/procgen/windoor = WA.make_windoor()
+	assert_eq(windoor.type, /obj/machinery/door/window/procgen)
+	assert_eq(windoor.material_type, M)
+	var/obj/structure/windoor_assembly/procgen/WA2 = windoor.make_assembly()
+	assert_eq(WA2.material_type, M)
+	assert_eq(WA2.glass_type, M.sheettype)
+	WA2.secure = TRUE
+	var/obj/machinery/door/window/procgen/secure_windoor = WA2.make_windoor()
+	assert_eq(secure_windoor.type, /obj/machinery/door/window/procgen/secure)
+	assert_eq(secure_windoor.material_type, M)
+	qdel(WA)
+	qdel(windoor)
+	qdel(WA2)
+	qdel(secure_windoor)
+	for(var/obj/item/I in T)
+		qdel(I)
+
+	// Broken procgen table doors leave only a shard.
+	var/obj/machinery/door/table/glass/procgen/TD = new(T)
+	TD.matsci_set_material(M.id)
+	var/shards_before = matsci_test_count(T, /obj/item/weapon/shard/procgen, M.id)
+	var/rods_before = matsci_test_count(T, /obj/item/stack/rods)
+	TD.health = 0
+	TD.checkhealth()
+	assert_eq(matsci_test_count(T, /obj/item/weapon/shard/procgen, M.id), shards_before + 1)
+	assert_eq(matsci_test_count(T, /obj/item/stack/rods), rods_before)
+
+	var/obj/item/stack/tile/rglass/procgen/tiles = new(null, 5, M.id)
+	var/obj/item/stack/tile/rglass/procgen/copy = tiles.create_like(null)
+	assert_eq(copy.mat_id, M.id)
+	assert_eq(tiles.materials.getAmount(M.id), 5 * M.cc_per_sheet)
+	var/datum/material/procgen/other = matsci_generate_material(2, list(MAT_GLASS), list())
+	var/obj/item/stack/tile/rglass/procgen/other_tiles = new(null, 1, other.id)
+	if(tiles.can_stack_with(other_tiles))
+		fail("Glass tiles of different materials can stack")
+	qdel(tiles)
+	qdel(copy)
+	qdel(other_tiles)
+
+/datum/unit_test/matsci/self_repair/start()
+	var/turf/T = run_loc_bottom_left
+	var/datum/material/procgen/M = matsci_generate_material(4, list(MAT_GLASS), list("self_repairing" = 1))
+	var/datum/material/procgen/plain = matsci_generate_material(4, list(MAT_GLASS), list())
+	var/obj/structure/window/procgen/W = new /obj/structure/window/procgen/loose(T)
+	var/obj/structure/window/procgen/W_plain = new /obj/structure/window/procgen/loose(T)
+	W.matsci_set_material(M.id)
+	W_plain.matsci_set_material(plain.id)
+	if(W in processing_objects)
+		fail("An undamaged self-repairing window is processing")
+	W.health = max(1, W.maxHealth - 3)
+	W.healthcheck(null, FALSE)
+	W_plain.health = max(1, W_plain.maxHealth - 3)
+	W_plain.healthcheck(null, FALSE)
+	if(!(W in processing_objects))
+		fail("A damaged self-repairing window isn't processing")
+	if(W_plain in processing_objects)
+		fail("A damaged window without the self-repairing trait is processing")
+	for(var/i in 1 to 10)
+		if(!(W in processing_objects))
+			break
+		W.process()
+	assert_eq(W.health, W.maxHealth)
+	if(W in processing_objects)
+		fail("A fully repaired window is still processing")
+	qdel(W)
+	qdel(W_plain)
+
+	var/obj/machinery/door/window/procgen/windoor = new(T)
+	windoor.matsci_set_material(M.id)
+	windoor.take_damage(3)
+	if(!(windoor in processing_objects))
+		fail("A damaged self-repairing windoor isn't processing")
+	for(var/i in 1 to 10)
+		if(!(windoor in processing_objects))
+			break
+		windoor.process()
+	assert_eq(windoor.health, windoor.maxHealth)
+	if(windoor in processing_objects)
+		fail("A fully repaired windoor is still processing")
+	qdel(windoor)
+
+	var/obj/machinery/door/table/glass/procgen/TD = new(T)
+	TD.matsci_set_material(M.id)
+	TD.health -= 3
+	TD.checkhealth()
+	if(!(TD in processing_objects))
+		fail("A damaged self-repairing table door isn't processing")
+	for(var/i in 1 to 10)
+		if(!(TD in processing_objects))
+			break
+		TD.process()
+	assert_eq(TD.health, TD.maxHealth)
+	if(TD in processing_objects)
+		fail("A fully repaired table door is still processing")
+	qdel(TD)
+	for(var/obj/item/I in T)
+		qdel(I)
+
+/datum/unit_test/matsci/walls/start()
+	var/turf/T = run_loc_bottom_left
+	var/datum/material/procgen/M = matsci_generate_material(2, list(MAT_IRON), list())
+	var/obj/item/stack/sheet/mineral/procgen/sheets = new(null, 2, M.id)
+	assert_eq(sheets.get_wall_path(), /turf/simulated/wall/mineral/procgen)
+	assert_eq(sheets.get_wall_path(TRUE), /obj/structure/falsewall/procgen)
+	var/obj/item/stack/sheet/mineral/procgen/blank = new(null, 2)
+	if(blank.get_wall_path())
+		fail("Procgen sheets with no material can plate a girder")
+	var/obj/item/stack/sheet/mineral/diamond/diamonds = new(null, 2)
+	assert_eq(diamonds.get_wall_path(), /turf/simulated/wall/mineral/diamond)
+	qdel(blank)
+	qdel(diamonds)
+
+	var/obj/structure/falsewall/procgen/FW = new(T)
+	sheets.apply_material_to(FW)
+	qdel(sheets)
+	if(!findtext(FW.name, lowertext(M.name)))
+		fail("Procgen false wall is called [FW.name]")
+	FW.dismantle()
+	assert_eq(matsci_test_count(T, /obj/item/stack/sheet/mineral/procgen, M.id), 2)
+	for(var/obj/structure/girder/G in T)
+		qdel(G)
+
+/datum/unit_test/matsci/tile_recipe/start()
+	var/turf/T = run_loc_bottom_left
+	var/datum/material/procgen/M = matsci_generate_material(2, list(MAT_GLASS), list())
+	var/obj/item/stack/sheet/mineral/procgen/sheets = new(null, 10, M.id)
+	var/datum/stack_recipe/matsci/R
+	for(var/datum/stack_recipe/matsci/candidate in sheets.recipes)
+		if(candidate.result_type == /obj/item/stack/tile/rglass/procgen)
+			R = candidate
+	if(!R)
+		fail("Glass-primary procgen sheets have no glass tile recipe")
+		return
+	var/obj/item/stack/tile/rglass/procgen/first = R.make_stack_result(null, sheets, T, 1)
+	var/obj/item/stack/tile/rglass/procgen/second = R.make_stack_result(null, sheets, T, 1)
+	assert_eq(first.mat_id, M.id)
+	assert_eq(second, first)
+	assert_eq(first.amount, 2)
+	assert_eq(first.materials.getAmount(M.id), 2 * M.cc_per_sheet)
+	qdel(first)
+	qdel(sheets)
