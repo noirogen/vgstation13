@@ -185,15 +185,18 @@
 /obj/machinery/mineral/stacking_machine/process_inside(atom/movable/A)
 	if(istype(A, /obj/item/stack))
 		var/obj/item/stack/stackA = A
+		// Procgen ores and sheets share a type, so stacks are kept apart by material too
+		var/mat_id = stackA.get_stack_material_id()
+		var/stack_key = mat_id ? "[stackA.type]:[mat_id]" : "[stackA.type]"
 
-		if(!("[stackA.type]" in stacks))
-			stack = new stackA.type(src)
+		if(!(stack_key in stacks))
+			stack = stackA.create_like(src)
 			stack.amount = stackA.amount
 		else
-			stack = stacks["[stackA.type]"]
+			stack = stacks[stack_key]
 			stack.amount += stackA.amount
 
-		stacks["[stackA.type]"] = stack
+		stacks[stack_key] = stack
 		qdel(stackA)
 
 /obj/machinery/mineral/stacking_machine/proc/release_stack(var/typepath, var/forced = 0)
@@ -206,7 +209,7 @@
 		return
 
 	var/obj/item/stack/stack = stacks[typepath]
-	var/obj/item/stack/stacked = new stack.type
+	var/obj/item/stack/stacked = stack.create_like(null)
 
 	var/release_amount = min(stack.amount, stack_amt)
 

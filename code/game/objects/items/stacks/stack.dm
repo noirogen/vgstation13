@@ -277,9 +277,17 @@
 
 	return (src.type == other_stack.type)
 
+/// Material ID for stack types shared by several materials (procgen ore and sheets). Null for everything else.
+/obj/item/stack/proc/get_stack_material_id()
+	return null
+
+/// Makes a new, separate stack of the same kind (and material) with amount 1. Use instead of new src.type.
+/obj/item/stack/proc/create_like(var/atom/new_loc)
+	return new type(new_loc, 1)
+
 /obj/item/stack/attack_hand(mob/user as mob)
 	if (user.get_inactive_hand() == src)
-		var/obj/item/stack/F = new src.type( user, amount=1)
+		var/obj/item/stack/F = create_like(user)
 		F.copy_evidences(src)
 		F.material_type = material_type
 		user.put_in_hands(F)

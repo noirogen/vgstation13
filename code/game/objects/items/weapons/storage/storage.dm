@@ -224,6 +224,14 @@
 /obj/item/stack/get_storage_number_display_value()
 	return amount
 
+/// Items with the same key are grouped together in storage that displays contents with numbers.
+/obj/item/proc/get_storage_display_key()
+	return type
+
+/obj/item/stack/get_storage_display_key()
+	var/mat_id = get_stack_material_id()
+	return mat_id ? "[type]:[mat_id]" : type
+
 //This proc determines the size of the inventory to be displayed. Please touch it only if you know what you're doing.
 /obj/item/weapon/storage/proc/orient2hud()
 	var/adjusted_contents = contents.len
@@ -237,7 +245,7 @@
 			if(obj_shows_to(I))
 				var/found = 0
 				for(var/datum/numbered_display/ND in numbered_contents)
-					if(ND.sample_object.type == I.type)
+					if(ND.sample_object.get_storage_display_key() == I.get_storage_display_key())
 						ND.number += I.get_storage_number_display_value()
 						found = 1
 						break
@@ -361,7 +369,7 @@
 	if(istype(W,/obj/item/stack))
 		var/obj/item/stack/S = W
 		for(var/obj/item/stack/otherS in src)
-			if(otherS.type == S.type)
+			if(otherS.can_stack_with(S))
 				if(otherS.amount < otherS.max_amount)
 					return TRUE
 				stacktypefound = TRUE
@@ -388,7 +396,7 @@
 	if(istype(W,/obj/item/stack))
 		var/obj/item/stack/S = W
 		for(var/obj/item/stack/otherS in src)
-			if(otherS.amount < otherS.max_amount && otherS.type == S.type)
+			if(otherS.amount < otherS.max_amount && otherS.can_stack_with(S))
 				var/to_transfer = min(S.amount, otherS.max_amount - otherS.amount)
 				otherS.add(to_transfer)
 				if(usr)
