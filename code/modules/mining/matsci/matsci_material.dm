@@ -81,7 +81,7 @@ var/matsci_material_counter = 0
 	. = list()
 	for(var/mat_id in primaries)
 		var/datum/material/base = material_list[mat_id]
-		. += "[base ? lowertext(base.name) : mat_id]like"
+		. += "[base ? lowertext(base.processed_name) : mat_id]like" // processed_name: glass is "Sand" as an ore
 
 /datum/material/procgen/proc/trait_names(var/with_strength = FALSE)
 	. = list()
