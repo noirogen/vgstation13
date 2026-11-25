@@ -1953,6 +1953,7 @@
 #include "code\modules\mining\matsci\matsci_mineral.dm"
 #include "code\modules\mining\matsci\matsci_settings.dm"
 #include "code\modules\mining\matsci\matsci_traits.dm"
+#include "code\modules\mining\matsci\matsci_walls.dm"
 #include "code\modules\mining\surprises\tg.dm"
 #include "code\modules\mining\surprises\vg.dm"
 #include "code\modules\mob\abilities.dm"
