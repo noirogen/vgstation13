@@ -691,7 +691,7 @@
 			if(material.sheettype == /obj/item/stack/sheet/metal)
 				mats = new /obj/item/stack/sheet/metal(get_turf(src))
 			else
-				mats = new material.sheettype(src)
+				mats = material.create_sheet(src)
 			if(to_spawn > mats.max_amount)
 				mats.amount = mats.max_amount
 				to_spawn -= mats.max_amount

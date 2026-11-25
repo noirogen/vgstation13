@@ -128,13 +128,13 @@ var/global/list/rnd_machines = list()
 				if (materials.storage[matID] == 0) // No materials of this type
 					continue
 				var/datum/material/M = materials.getMaterial(matID)
-				var/obj/item/stack/sheet/sheet = new M.sheettype(loc)
+				var/obj/item/stack/sheet/sheet = M.create_sheet(loc)
 				if(sheet)
 					var/available_num_sheets = round(materials.storage[matID]/sheet.perunit)
 					if(available_num_sheets>0)
 						while (available_num_sheets > MAX_SHEET_STACK_AMOUNT)
 							available_num_sheets -= MAX_SHEET_STACK_AMOUNT
-							var/obj/item/stack/sheet/bonus_sheet = new M.sheettype(loc)
+							var/obj/item/stack/sheet/bonus_sheet = M.create_sheet(loc)
 							bonus_sheet.amount = MAX_SHEET_STACK_AMOUNT
 							materials.removeAmount(matID, MAX_SHEET_STACK_AMOUNT * sheet.perunit)
 						sheet.amount = available_num_sheets
@@ -165,12 +165,14 @@ var/global/list/rnd_machines = list()
 		to_chat(user, "\The [src] must be linked to an R&D console first!")
 		return 1
 	if(istype(O,/obj/item/stack/sheet) && research_flags &TAKESMATIN)
-		var/found = "" //the matID we're compatible with
 		var/obj/item/stack/sheet/stack = O
-		for(var/matID in materials.storage)
-			var/datum/material/M = materials.getMaterial(matID)
-			if(M.sheettype==stack.type)
-				found = matID
+		var/found = stack.get_stack_material_id() //the matID we're compatible with. Procgen sheets share one type and carry their material.
+		if(!found)
+			found = ""
+			for(var/matID in materials.storage)
+				var/datum/material/M = materials.getMaterial(matID)
+				if(M.sheettype==stack.type)
+					found = matID
 		if(!user.Adjacent(src) || !stack || !stack.loc || (stack.loc != user && !isgripper(stack.loc)))
 			return 1
 		var/amount = 0
@@ -232,11 +234,14 @@ var/global/list/rnd_machines = list()
 		return 1
 	if(istype(O,/obj/item/stack/sheet) && research_flags &TAKESMATIN)
 
-		var/found = "" //the matID we're compatible with
-		for(var/matID in materials.storage)
-			var/datum/material/M = materials.getMaterial(matID)
-			if(M.sheettype==O.type)
-				found = matID
+		var/obj/item/stack/sheet/inserted = O
+		var/found = inserted.get_stack_material_id() //the matID we're compatible with. Procgen sheets share one type and carry their material.
+		if(!found)
+			found = ""
+			for(var/matID in materials.storage)
+				var/datum/material/M = materials.getMaterial(matID)
+				if(M.sheettype==O.type)
+					found = matID
 		if(!found)
 			if(O.materials && research_flags &FAB_RECYCLER)
 				return 0 //let the autolathe try to do it's thing

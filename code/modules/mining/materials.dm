@@ -12,6 +12,8 @@
 
 /proc/initialize_materials()
 	for(var/matdata in subtypesof(/datum/material))
+		if(ispath(matdata, /datum/material/procgen)) // Procedurally generated materials are registered at runtime, see matsci_register_material()
+			continue
 		var/datum/material/mat = new matdata
 		material_list += list(mat.id = mat)
 		if (!mat.sheettype)
@@ -20,6 +22,15 @@
 
 var/global/list/datum/material/material_list		//Stores an instance of all the datums as an assoc with their matids
 var/global/list/initial_materials	//Stores all the matids = 0 in helping New
+
+// Can a material holder store this material ID? Same rule as initial_materials: the material must exist and be sheetable.
+// Holders created before a material was registered (e.g. procedurally generated ones) gain a slot for it on first use.
+/proc/is_storable_material(var/mat_id)
+	if(!istext(mat_id))
+		return FALSE
+	if(!material_list)
+	var/datum/material/mat = material_list[mat_id]
+	return mat && mat.sheettype
 
 /datum/materials
 	var/atom/holder
@@ -64,7 +75,8 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 //Returns however much we have of that material
 /datum/materials/proc/getAmount(var/mat_id)
 	if(!(mat_id in storage))
-		warning("getAmount(): Unknown material [mat_id]!")
+		if(!is_storable_material(mat_id)) // Registered but not stored here yet: we simply have none
+			warning("getAmount(): Unknown material [mat_id]!")
 		return 0
 
 	return storage[mat_id]
@@ -80,8 +92,10 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 //Adds the given amount of the given mat_ID to our storage
 /datum/materials/proc/addAmount(var/mat_id,var/amount)
 	if(!(mat_id in storage))
-		warning("addAmount(): Unknown material [mat_id]!")
-		return
+		if(!is_storable_material(mat_id))
+			warning("addAmount(): Unknown material [mat_id]!")
+			return
+		storage[mat_id] = 0 // Material registered after we were created (e.g. procgen): make a slot for it
 	// I HATE BYOND
 	// storage[mat_id].stored++
 	storage[mat_id] = max(0, storage[mat_id] + amount)
@@ -98,8 +112,8 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 /datum/materials/proc/addFrom(var/datum/materials/mats, var/zero_after=0)
 	if(mats == null)
 		return
-	for(var/mat_id in storage)
-		if(mats.storage[mat_id]>0)
+	for(var/mat_id in mats.storage)
+		if(mats.storage[mat_id]>0 && ((mat_id in storage) || is_storable_material(mat_id)))
 			storage[mat_id] += mats.storage[mat_id]
 			if(zero_after)
 				mats.storage[mat_id] = 0
@@ -107,8 +121,8 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 /datum/materials/proc/addRatioFrom(var/datum/materials/mats, var/ratio)
 	if(mats == null)
 		return
-	for(var/mat_id in storage)
-		if(mats.storage[mat_id]>0)
+	for(var/mat_id in mats.storage)
+		if(mats.storage[mat_id]>0 && ((mat_id in storage) || is_storable_material(mat_id)))
 			storage[mat_id] += mats.storage[mat_id] * abs(ratio)
 
 //Used to remove all materials from a given materials datum, and transfer it to ours
@@ -119,7 +133,8 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 /datum/materials/proc/Transfer(var/mat_id, var/amount, var/datum/materials/receiver)
 	ASSERT(receiver)
 	if(!(mat_id in storage))
-		warning("Transfer(): Unknown material [mat_id]!")
+		if(!is_storable_material(mat_id))
+			warning("Transfer(): Unknown material [mat_id]!")
 		return 0
 	amount = min(getAmount(mat_id), amount)
 	receiver.addAmount(mat_id, amount)
@@ -139,7 +154,8 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 
 /datum/materials/proc/removeAmount(var/mat_id,var/amount)
 	if(!(mat_id in storage))
-		warning("removeAmount(): Unknown material [mat_id]!")
+		if(!is_storable_material(mat_id))
+			warning("removeAmount(): Unknown material [mat_id]!")
 		return
 	addAmount(mat_id,-amount)
 
@@ -153,7 +169,7 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 		if(amount)
 			var/datum/material/mat = getMaterial(id)
 			var/sheet_number = Floor(amount / mat.cc_per_sheet)
-			drop_stack(mat.sheettype, loc, sheet_number)
+			mat.spawn_sheets(loc, sheet_number)
 			if(removes_from_mats)
 				removeAmount(id,mat.cc_per_sheet * sheet_number)
 
@@ -162,7 +178,7 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 		var/amount = getAmount(id)
 		if(amount)
 			var/datum/material/mat = getMaterial(id)
-			drop_stack(mat.oretype, loc, amount)
+			mat.spawn_ore(loc, amount)
 
 /datum/materials/proc/makeAndRemoveOre(var/atom/loc)
 	makeOre(loc)
@@ -203,6 +219,18 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 /datum/material/New()
 	if(processed_name=="")
 		processed_name=name
+
+// Spawning helpers. Use these instead of new sheettype/oretype, so materials that share an item type
+// (procedurally generated ones, see matsci_material.dm) keep their identity.
+/datum/material/proc/spawn_sheets(var/atom/loc, var/amount)
+	return drop_stack(sheettype, loc, amount)
+
+/datum/material/proc/spawn_ore(var/atom/loc, var/amount)
+	return drop_stack(oretype, loc, amount)
+
+// Makes a single new sheet stack (amount 1) without merging into existing stacks.
+/datum/material/proc/create_sheet(var/atom/loc)
+	return new sheettype(loc)
 
 /datum/material/proc/on_use(obj/source, atom/target, mob/user)
 	ASSERT(source)

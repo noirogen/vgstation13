@@ -611,7 +611,7 @@ won't update every console in existence) but it's more of a hassle to do. Also, 
 		if(!istype(M))
 			warning("PROTOLATHE: Unknown material [matID]! ([href])")
 		else
-			var/obj/item/stack/sheet/sheet = new M.sheettype(linked_lathe.get_output())
+			var/obj/item/stack/sheet/sheet = M.create_sheet(linked_lathe.get_output())
 			var/available_num_sheets = round(linked_lathe.materials.storage[matID]/sheet.perunit)
 			if(available_num_sheets>0)
 				sheet.amount = min(available_num_sheets, desired_num_sheets)
@@ -630,7 +630,7 @@ won't update every console in existence) but it's more of a hassle to do. Also, 
 		if(!istype(M))
 			warning("IMPRINTER: Unknown material [matID]! ([href])")
 		else
-			var/obj/item/stack/sheet/sheet = new M.sheettype(linked_imprinter.get_output())
+			var/obj/item/stack/sheet/sheet = M.create_sheet(linked_imprinter.get_output())
 			var/available_num_sheets = round(linked_imprinter.materials.storage[matID]/sheet.perunit)
 			if(available_num_sheets>0)
 				sheet.amount = min(available_num_sheets, desired_num_sheets)

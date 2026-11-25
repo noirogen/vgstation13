@@ -120,7 +120,7 @@
 
 /obj/machinery/mineral/mint/proc/DropSheet(var/matID)
 	var/datum/material/M = materials.getMaterial(matID)
-	var/obj/item/stack/sheet/sh = new M.sheettype(src.loc)
+	var/obj/item/stack/sheet/sh = M.create_sheet(src.loc)
 	if(sh)
 		var/available_num_sheets = materials.storage[matID]
 		if(available_num_sheets>0)
@@ -149,7 +149,7 @@
 
 	if(href_list["eject"])
 		var/datum/material/ma = materials.getMaterial(href_list["eject"])
-		var/obj/item/stack/sheet/sh = new ma.sheettype(out_T)
+		var/obj/item/stack/sheet/sh = ma.create_sheet(out_T)
 		sh.amount = materials.getAmount(href_list["eject"])
 		materials.removeAmount(href_list["eject"], sh.amount)
 		if (chosen == href_list["eject"])
