@@ -455,6 +455,10 @@
 		if(sheets_this_tick >= max_moved) //Second one is so it cancels the for loop when the while loop gets broken.
 			break
 
+	// Procgen materials have no smelting recipes: each one smelts straight into its own sheets.
+	if(sheets_this_tick < max_moved)
+		sheets_this_tick += matsci_smelt_procgen(ore, out_T, max_moved - sheets_this_tick, src)
+
 	if(sheets_this_tick) //We produced something this tick, make it take more power.
 		use_power = MACHINE_POWER_USE_ACTIVE
 	else

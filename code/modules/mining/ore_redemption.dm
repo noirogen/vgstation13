@@ -70,7 +70,11 @@
 		qdel(O)
 
 /obj/machinery/mineral/ore_redemption/proc/SmeltOreType(var/type, var/amount)
-	var/obj/item/stack/ore/O = new type
+	var/obj/item/stack/ore/O
+	if(istext(type)) // Ore boxes key procgen ores by material ID
+		O = new /obj/item/stack/ore/procgen(null, 1, type)
+	else
+		O = new type
 	O.max_amount = INFINITY
 	O.set_amount(amount)
 	SmeltMineral(O)
@@ -149,7 +153,7 @@
 			if(desired==0)
 				return 1
 			var/turf/out_T = get_step(src, out_dir)
-			var/obj/item/stack/sheet/out = new mat.sheettype(out_T.loc)
+			var/obj/item/stack/sheet/out = mat.create_sheet(out_T.loc)
 			out.redeemed = 1 //Central command will not pay for this mineral stack.
 			out.set_amount(clamp(round(desired), 0, min(materials.storage[release]/mat.cc_per_sheet, out.max_amount)))
 			materials.removeAmount(release, out.amount * mat.cc_per_sheet)

@@ -8,6 +8,7 @@
 	desc = "A heavy box used for storing ore."
 	density = 1
 	starting_materials = list()
+	/// Ore type path -> amount. Procgen ores share one type, so they're keyed by material ID (a text string) instead.
 	var/list/stored_ores = list()
 
 /obj/structure/ore_box/attackby(obj/item/weapon/W as obj, mob/user as mob)
@@ -36,8 +37,13 @@
 	var/dat = "<b>The contents of the ore box reveal...</b><ul>"
 	for(var/ore_id in stored_ores)
 		var/amount = stored_ores[ore_id]
-		var/obj/item/stack/ore/cast_type = ore_id
-		if(amount > 0)
+		if(amount <= 0)
+			continue
+		if(istext(ore_id)) // Procgen material ID
+			var/datum/material/procgen/M = matsci_get_material(ore_id)
+			dat += "<li><b>[M ? "[lowertext(M.name)] ore" : "strange ore"]:</b> [amount]</li>"
+		else
+			var/obj/item/stack/ore/cast_type = ore_id
 			dat += "<li><b>[initial(cast_type.name)]:</b> [amount]</li>"
 
 	dat += "</ul><A href='?src=\ref[src];removeall=1'>Empty box</A>"
@@ -63,7 +69,10 @@
 	for(var/ore_id in stored_ores)
 		var/amount = stored_ores[ore_id]
 		if(amount > 0)
-			drop_stack(ore_id, get_turf(src), amount)
+			if(istext(ore_id)) // Procgen material ID
+				drop_material_stack(/obj/item/stack/ore/procgen, get_turf(src), amount, ore_id)
+			else
+				drop_stack(ore_id, get_turf(src), amount)
 
 	stored_ores.Cut()
 
@@ -81,5 +90,9 @@
 	if (!O.can_orebox)
 		return FALSE
 
-	stored_ores[O.type] += O.amount
+	var/mat_id = O.get_stack_material_id()
+	if(mat_id)
+		stored_ores[mat_id] += O.amount
+	else
+		stored_ores[O.type] += O.amount
 	return TRUE

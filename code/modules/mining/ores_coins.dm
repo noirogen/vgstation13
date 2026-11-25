@@ -413,6 +413,8 @@
 						drop_stack(R.yieldtype,loc.loc)
 					else
 						drop_stack(R.yieldtype,loc)
+		// Procgen materials have no smelting recipes and smelt straight into their own sheets
+		matsci_smelt_procgen(materials, istype(loc, /obj/structure/forge) ? loc.loc : loc)
 		qdel(src)
 
 /*****************************Coin********************************/
