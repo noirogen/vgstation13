@@ -227,6 +227,11 @@ var/list/admin_verbs_debug = list(
 	/client/proc/update_all_area_portals,
 	/client/proc/spam_blend_calls,
 	/client/proc/edit_motd,
+	/client/proc/matsci_list_materials,
+	/client/proc/matsci_inspect_material,
+	/client/proc/matsci_spawn_material,
+	/client/proc/matsci_generate_material_verb,
+	/client/proc/matsci_reroll_round_set,
 	)
 var/list/admin_verbs_possess = list(
 	/client/proc/possess
