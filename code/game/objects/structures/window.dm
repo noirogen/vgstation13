@@ -45,6 +45,8 @@ var/list/one_way_windows
 
 /obj/structure/window/New(loc)
 	..(loc)
+	if(!maxHealth)
+		maxHealth = health
 	flow_flags |= ON_BORDER | KEEP_DIR
 	setup_border_dummy()
 
@@ -103,13 +105,13 @@ var/list/one_way_windows
 	if(one_way)
 		to_chat(user, "It has a plastic coating.")
 	//switch most likely can't take inequalities, so here's that if block
-	if(health >= initial(health)) //Sanity
+	if(health >= maxHealth) //Sanity
 		to_chat(user, "It's in perfect shape without a single scratch.")
-	else if(health >= 0.8*initial(health))
+	else if(health >= 0.8*maxHealth)
 		to_chat(user, "It has a few scratches and a small impact.")
-	else if(health >= 0.5*initial(health))
+	else if(health >= 0.5*maxHealth)
 		to_chat(user, "It has a few impacts with some cracks running from them.")
-	else if(health >= 0.2*initial(health))
+	else if(health >= 0.2*maxHealth)
 		to_chat(user, "It's covered in impact marks and most of the outer layer is cracked.")
 	else
 		to_chat(user, "It's cracked over multiple layers and has many impact marks.")
@@ -150,8 +152,8 @@ var/list/one_way_windows
 
 		overlays -= damage_overlay
 
-		if(health < initial(health))
-			var/damage_fraction = clamp(round((initial(health) - health) / initial(health) * 5) + 1, 1, 5) //gives a number, 1-5, based on damagedness
+		if(health < maxHealth)
+			var/damage_fraction = clamp(round((maxHealth - health) / maxHealth * 5) + 1, 1, 5) //gives a number, 1-5, based on damagedness
 			damage_overlay.icon_state = "[cracked_base][damage_fraction]"
 			overlays += damage_overlay
 
@@ -172,7 +174,7 @@ var/list/one_way_windows
 		var/obj/item/device/silicate_sprayer/advanced/SA = S
 		mode = SA.mode
 
-	var/diff = initial(health) - health
+	var/diff = maxHealth - health
 	if(!diff && (mode == MODE_REPAIR)) // Not damaged.
 		to_chat(user, "<span class='notice'>\The [src] is already in perfect condition!</span>")
 		return 1
@@ -186,11 +188,11 @@ var/list/one_way_windows
 		user.visible_message("<span class='notice'>[user] repairs \the [src] with their [S]!</span>", "<span class='notice'>You repair \the [src] with your [S.name].</span>")
 
 	else // No diff, but we didn't exit earlier, so mode must be reinforce
-		var/extra_health = health - initial(health)
-		if(health >= initial(health) * MAX_WINDOW_HEALTH_MULTIPLIER)
+		var/extra_health = health - maxHealth
+		if(health >= maxHealth * MAX_WINDOW_HEALTH_MULTIPLIER)
 			to_chat(user, "<span class='notice'>You can't reinforce \the [src] any further!</span>")
 			return 1
-		diff = min(S.get_amount() / SILICATE_PER_REINFORCE, (initial(health) * MAX_WINDOW_HEALTH_MULTIPLIER) - (initial(health) + extra_health))
+		diff = min(S.get_amount() / SILICATE_PER_REINFORCE, (maxHealth * MAX_WINDOW_HEALTH_MULTIPLIER) - (maxHealth + extra_health))
 		health += diff
 		healthcheck(user)
 		user.visible_message("<span class='notice'>[user] reinforced \the [src] with their [S]!</span>", "<span class='notice'>You reinforce \the [src] with your [S.name].</span>")
@@ -570,7 +572,7 @@ var/list/one_way_windows
 						WT.playtoolsound(src, 100)
 						user.visible_message("<span class='warning'>[user] disassembles \the [src].</span>", \
 						"<span class='notice'>You disassemble \the [src].</span>")
-						drop_stack(sheet_type, get_turf(src), sheetamount, user)
+						drop_glass_sheets(get_turf(src), user)
 						qdel(src)
 						return
 					else
@@ -597,7 +599,7 @@ var/list/one_way_windows
 			if(WT.do_weld(user, src, 40, 0) && d_state == WINDOWLOOSE) //Ditto above
 				user.visible_message("<span class='warning'>[user] disassembles \the [src].</span>", \
 				"<span class='notice'>You disassemble \the [src].</span>")
-				drop_stack(sheet_type, get_turf(src), sheetamount, user)
+				drop_glass_sheets(get_turf(src), user)
 				qdel(src)
 				return
 
@@ -637,6 +639,10 @@ var/list/one_way_windows
 		one_way_windows.Remove(src)
 		update_oneway_nearby_clients()
 	..()
+
+/// Drops the sheets this window was built from, when it's taken apart.
+/obj/structure/window/proc/drop_glass_sheets(var/turf/T, var/mob/user)
+	drop_stack(sheet_type, T, sheetamount, user)
 
 /obj/structure/window/proc/shatter()
 	if(loc)

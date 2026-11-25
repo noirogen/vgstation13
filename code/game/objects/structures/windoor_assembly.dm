@@ -59,6 +59,11 @@
 		return !density
 	return TRUE
 
+/// Drops the glass this assembly was built from, when it's welded apart.
+/obj/structure/windoor_assembly/proc/drop_glass_sheets(var/amount)
+	if(glass_type)
+		new glass_type(loc, amount)
+
 /obj/structure/windoor_assembly/proc/make_windoor(var/mob/user)
 	var/spawn_type = secure ? secure_type : windoor_type
 	var/obj/machinery/door/window/windoor = new spawn_type(loc)
@@ -104,8 +109,7 @@
 			if(gcDestroyed)
 				return
 			to_chat(user, "<span class='notice'>You dissasembled [src]!</span>")
-			if(glass_type)
-				new glass_type(loc, 5)
+			drop_glass_sheets(5)
 			if(secure)
 				new reinforce_material(loc, 2)
 			qdel(src)

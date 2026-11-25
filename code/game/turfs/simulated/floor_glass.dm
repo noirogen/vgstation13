@@ -9,6 +9,7 @@
 	intact = 0 // make pipes appear above space
 
 	var/health=80 // 2x that of an rwindow
+	var/max_health
 	var/sheetamount = 1 //Number of sheets needed to build this floor (determines how much shit is spawned via Destroy())
 	var/cracked_base = "fcrack"
 	var/shardtype = /obj/item/weapon/shard
@@ -22,6 +23,8 @@
 
 /turf/simulated/floor/glass/New(loc)
 	..(loc)
+	if(!max_health)
+		max_health = health
 	icon_state = "[((x + y) ^ ~(x * y) + z) % 25]"
 	if(!floor_overlays[glass_state])
 		var/image/floor_overlay = image('icons/turf/overlays.dmi', glass_state)
@@ -33,7 +36,6 @@
 
 /turf/simulated/floor/glass/update_icon()
 	var/current_health = health
-	var/max_health = initial(health)
 	if(current_health >= max_health)
 		if(current_damage_overlay)
 			overlays -= current_damage_overlay
@@ -59,13 +61,13 @@
 
 /turf/simulated/floor/glass/examine(var/mob/user)
 	..()
-	if(health >= initial(health)) //Sanity
+	if(health >= max_health) //Sanity
 		to_chat(user, "It's in perfect shape without a single scratch.")
-	else if(health >= 0.8*initial(health))
+	else if(health >= 0.8*max_health)
 		to_chat(user, "It has a few scratches and a small impact.")
-	else if(health >= 0.5*initial(health))
+	else if(health >= 0.5*max_health)
 		to_chat(user, "It has a few impacts with some cracks running from them.")
-	else if(health >= 0.2*initial(health))
+	else if(health >= 0.2*max_health)
 		to_chat(user, "It's covered in impact marks and most of the outer layer is cracked.")
 	else
 		to_chat(user, "It's cracked over multiple layers and has many impact marks.")
@@ -78,6 +80,10 @@
 
 	spawnBrokenPieces(src)
 	ChangeTurf(get_base_turf(src.z))
+
+/// Drops the sheets this floor was built from, when it's taken apart.
+/turf/simulated/floor/glass/proc/drop_glass_sheets()
+	new sheettype(src, sheetamount)
 
 /turf/simulated/floor/glass/proc/spawnBrokenPieces(var/turf/T)
 	new shardtype(T, sheetamount)
@@ -255,7 +261,7 @@
 						message_admins("Glass floor with pressure [pressure]kPa deconstructed by [user.real_name] ([formatPlayerPanel(user,user.ckey)]) at [formatJumpTo(src)]!")
 						log_admin("Window with pressure [pressure]kPa deconstructed by [user.real_name] ([user.ckey]) at [src]!")
 
-					new sheettype(src, sheetamount)
+					drop_glass_sheets()
 					src.ReplaceWithLattice()
 	if(ishuman(user) && user.a_intent != I_HURT)
 		return
@@ -312,7 +318,7 @@
 		var/obj/item/device/silicate_sprayer/advanced/SA = S
 		mode = SA.mode
 
-	var/diff = initial(health) - health
+	var/diff = max_health - health
 	if(!diff && (mode == MODE_REPAIR)) // Not damaged.
 		to_chat(user, "<span class='notice'>\The [src] is already in perfect condition!</span>")
 		return 1
@@ -326,11 +332,11 @@
 		user.visible_message("<span class='notice'>[user] repairs \the [src] with their [S]!</span>", "<span class='notice'>You repair \the [src] with your [S.name].</span>")
 
 	else // No diff, but we didn't exit earlier, so mode must be reinforce
-		var/extra_health = health - initial(health)
-		if(health >= initial(health) * MAX_WINDOW_HEALTH_MULTIPLIER)
+		var/extra_health = health - max_health
+		if(health >= max_health * MAX_WINDOW_HEALTH_MULTIPLIER)
 			to_chat(user, "<span class='notice'>You can't reinforce \the [src] any further!</span>")
 			return 1
-		diff = min(S.get_amount() / SILICATE_PER_REINFORCE, (initial(health) * MAX_WINDOW_HEALTH_MULTIPLIER) - (initial(health) + extra_health))
+		diff = min(S.get_amount() / SILICATE_PER_REINFORCE, (max_health * MAX_WINDOW_HEALTH_MULTIPLIER) - (max_health + extra_health))
 		health += diff
 		healthcheck(user)
 		user.visible_message("<span class='notice'>[user] reinforced \the [src] with their [S]!</span>", "<span class='notice'>You reinforce \the [src] with your [S.name].</span>")
