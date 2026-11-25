@@ -191,13 +191,7 @@
 		if(W.is_screwdriver(user))
 			user.visible_message("[user] tightens some bolts on the wall.", "You tighten the bolts on the wall.")
 			W.playtoolsound(T, 50)
-			if(!mineral || mineral == "metal")
-				if(reinforced)
-					T.ChangeTurf(/turf/simulated/wall/r_wall)
-				else
-					T.ChangeTurf(/turf/simulated/wall)
-			else
-				T.ChangeTurf(text2path("/turf/simulated/wall/mineral/[mineral]"))
+			make_wall(T)
 			qdel(src)
 
 		if(iswelder(W))
@@ -234,6 +228,16 @@
 	else
 		to_chat(user, "<span class='notice'>You can't reach, close it first!</span>")
 
+
+/// Turns T into the real wall this false wall imitates.
+/obj/structure/falsewall/proc/make_wall(var/turf/T)
+	if(!mineral || mineral == "metal")
+		if(reinforced)
+			T.ChangeTurf(/turf/simulated/wall/r_wall)
+		else
+			T.ChangeTurf(/turf/simulated/wall)
+	else
+		T.ChangeTurf(text2path("/turf/simulated/wall/mineral/[mineral]"))
 
 /obj/structure/falsewall/proc/dismantle()
 	var/turf/T = get_turf(src)

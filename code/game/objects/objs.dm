@@ -821,6 +821,7 @@ var/global/list/reagents_to_always_log = list(AMUTATIONTOXIN, CYANIDE, CHEFSPECI
 		alpha = mat.alpha
 		material_type = mat
 		sheet_type = mat.sheettype
+		mat.apply_material_appearance(src)
 	gen_quality(additional_quality, min_quality)
 	if(quality > B_SUPERIOR)
 		gen_description()

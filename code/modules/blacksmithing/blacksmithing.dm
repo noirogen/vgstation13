@@ -36,6 +36,7 @@
 	// Makes it look like a smaller metal sheet
 	var/obj/item/stack/sheet/mineral/M = material_type.sheettype
 	appearance = initial(M.appearance)
+	material_type.apply_sheet_appearance(src)
 	desc = initial(desc)
 	var/matrix/shrink = matrix()
 	shrink.Scale(0.5, 0.5)

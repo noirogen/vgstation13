@@ -312,8 +312,8 @@
 					qdel(src)
 				return
 
-		if(S.sheettype)
-			var/M = S.sheettype
+		if(S.sheettype || S.get_wall_path())
+			var/M = S.sheettype ? S.sheettype : S.name
 			var/isLegacy = FALSE
 			if(istype(W,/obj/item/stack/tile)) // if using tiles, use the path for the legacy instance
 				isLegacy = TRUE
@@ -321,11 +321,7 @@
 				if(S.amount < use_amount)
 					to_chat(user, "<span class='warning'>Not enough material to construct. A total of [use_amount] required.</span>")
 					return
-				var/F
-				if(!isLegacy)
-					F = text2path("/obj/structure/falsewall/[M]")
-				else
-					F = text2path("/obj/structure/falsewall/[M]/[M]_old")
+				var/F = S.get_wall_path(TRUE)
 				if(!ispath(F))
 					return
 				var/pdiff = performWallPressureCheck(src.loc)
@@ -334,6 +330,7 @@
 					user.visible_message("<span class='warning'>[user] creates a false wall!</span>", \
 					"<span class='notice'>You create a false wall. Push on it to open or close the passage.</span>")
 					var/obj/structure/falsewall/FW = new F (src.loc)
+					S.apply_material_to(FW)
 					FW.add_hiddenprint(user)
 					FW.add_fingerprint(user)
 					qdel(src)
@@ -346,11 +343,7 @@
 				if(S.amount < use_amount)
 					to_chat(user, "<span class='warning'>Not enough material to construct. A total of [use_amount] required.</span>")
 					return ..()
-				var/wallpath
-				if(!isLegacy)
-					wallpath = text2path("/turf/simulated/wall/mineral/[M]")
-				else
-					wallpath = text2path("/turf/simulated/wall/mineral/[M]/[M]_old")
+				var/wallpath = S.get_wall_path()
 				if(!ispath(wallpath))
 					return ..()
 				if(!isLegacy)
@@ -376,6 +369,7 @@
 					if(X)
 						X.add_hiddenprint(user)
 						X.add_fingerprint(user)
+					S.apply_material_to(get_turf(src))
 					qdel(src)
 				return
 

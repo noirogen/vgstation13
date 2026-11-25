@@ -233,6 +233,15 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 /datum/material/proc/create_sheet(var/atom/loc)
 	return new sheettype(loc)
 
+/// Called when an object is made out of this material (dorfify). Base materials leave the object's sprite alone.
+/datum/material/proc/apply_material_appearance(var/obj/O)
+	return
+
+/// Called on things drawn as a sheet of this material (e.g. unforged blacksmithing parts) after they copy sheettype's appearance.
+/// Base materials each have their own sheet type, so there's nothing to change.
+/datum/material/proc/apply_sheet_appearance(var/atom/A)
+	return
+
 /datum/material/proc/on_use(obj/source, atom/target, mob/user)
 	ASSERT(source)
 	if(isobserver(user))

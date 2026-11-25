@@ -281,6 +281,19 @@
 /obj/item/stack/proc/get_stack_material_id()
 	return null
 
+/// The wall (or false wall) this stack plates a girder into, from its sheettype. Tiles give the legacy version. Null if there isn't one.
+/obj/item/stack/proc/get_wall_path(var/false_wall = FALSE)
+	if(!sheettype)
+		return null
+	var/legacy = istype(src, /obj/item/stack/tile)
+	if(false_wall)
+		return text2path(legacy ? "/obj/structure/falsewall/[sheettype]/[sheettype]_old" : "/obj/structure/falsewall/[sheettype]")
+	return text2path(legacy ? "/turf/simulated/wall/mineral/[sheettype]/[sheettype]_old" : "/turf/simulated/wall/mineral/[sheettype]")
+
+/// Called on whatever this stack was just built into (a wall, a false wall...), so stacks that carry a material can pass it on.
+/obj/item/stack/proc/apply_material_to(var/atom/A)
+	return
+
 /// Makes a new, separate stack of the same kind (and material) with amount 1. Use instead of new src.type.
 /obj/item/stack/proc/create_like(var/atom/new_loc)
 	return new type(new_loc, 1)

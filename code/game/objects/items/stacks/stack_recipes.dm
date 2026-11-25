@@ -49,6 +49,12 @@
 /datum/stack_recipe/proc/before_build(var/mob/user)
 	return TRUE
 
+/// Creates the result of a recipe whose result_type is a stack. S is the stack being used up.
+/datum/stack_recipe/proc/make_stack_result(var/mob/user, var/obj/item/stack/S, var/turf/construct_loc, var/amount)
+	var/obj/item/stack/SS = drop_stack(result_type, construct_loc, amount, user)
+	SS.update_materials()
+	return SS
+
 /datum/stack_recipe/proc/build(var/mob/user, var/obj/item/stack/S, var/multiplier = 1, var/turf/construct_loc)
 	if (!before_build(user))
 		return
@@ -107,9 +113,7 @@
 				return
 	var/atom/O
 	if(ispath(result_type, /obj/item/stack))
-		O = drop_stack(result_type, construct_loc, (max_res_amount>1 ? res_amount*multiplier : 1), user)
-		var/obj/item/stack/SS = O
-		SS.update_materials()
+		O = make_stack_result(user, S, construct_loc, (max_res_amount>1 ? res_amount*multiplier : 1))
 	else
 		for(var/i = 1 to (max_res_amount>1 ? res_amount*multiplier : 1))
 			O = new result_type(construct_loc)
