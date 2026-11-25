@@ -29,6 +29,7 @@ var/global/list/initial_materials	//Stores all the matids = 0 in helping New
 	if(!istext(mat_id))
 		return FALSE
 	if(!material_list)
+		initialize_materials()
 	var/datum/material/mat = material_list[mat_id]
 	return mat && mat.sheettype
 
