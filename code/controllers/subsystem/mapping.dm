@@ -547,6 +547,7 @@ var/skip_turf_init = FALSE //NEVER change this var for anything other than incre
 	// Initialize generation state
 	generation_start_time = world.timeofday
 	current_planet = new planet_datum
+	matsci_generate_planet_set(current_planet) // Procgen materials for this planet's ore, before any turfs generate
 	var/alloc_size = size_override ? size_override : current_planet.allocation_size
 	current_mapgen = new current_planet.mapgen(alloc_size)
 	current_virtual_z = map.addVLevel(alloc_size, null, TRUE)

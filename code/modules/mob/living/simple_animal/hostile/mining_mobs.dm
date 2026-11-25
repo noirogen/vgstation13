@@ -913,6 +913,13 @@
 	vision_range = 7
 	speed = 4
 	var/possessed_ore
+	var/possessed_ore_material // Material ID for ore types shared by several materials (procgen)
+
+/mob/living/simple_animal/hostile/asteroid/rockernaut/proc/spawn_possessed_ore()
+	if(possessed_ore_material)
+		new possessed_ore(loc, 1, possessed_ore_material)
+	else
+		new possessed_ore(loc)
 
 /mob/living/simple_animal/hostile/asteroid/rockernaut/Life()
 	.=..()
@@ -950,7 +957,7 @@
 /mob/living/simple_animal/hostile/asteroid/rockernaut/proc/drop_loot()
 	if(possessed_ore)
 		for(var/i = 0 to rand(3,9))
-			new possessed_ore(src.loc)
+			spawn_possessed_ore()
 
 	if(prob(1))
 		new /obj/item/weapon/vinyl/rock(src.loc) //It is a rock monster after all
@@ -985,7 +992,7 @@
 /mob/living/simple_animal/hostile/asteroid/rockernaut/boss/drop_loot()
 	if(possessed_ore)
 		for(var/i = 0 to rand(24,46))
-			new possessed_ore(src.loc)
+			spawn_possessed_ore()
 
 	new /obj/item/weapon/vinyl/filk(src.loc) //The music of the asteroid~
 

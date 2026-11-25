@@ -948,6 +948,7 @@
 			for(M in L)
 				var/turf/T = get_turf(M)
 				var/image/I = image('icons/turf/mine_overlays.dmi', loc = T, icon_state = M.GetScanState(), layer = UNDER_HUD_LAYER)
+				I.color = M.GetScanColor() // Procgen deposits share a sprite and are told apart by colour
 				I.plane = HUD_PLANE
 				C.images += I
 				spawn(30)

@@ -166,7 +166,10 @@ var/list/icon_state_to_appearance = list()
 	else
 		overlays.Cut()
 		if(mineral)
-			mineral_overlay = image('icons/turf/mine_overlays.dmi', mineral_name)
+			if(mineral_name == mineral.display_name)
+				mineral_overlay = mineral.get_overlay_image() // Procgen deposits use a tinted shared sprite
+			else
+				mineral_overlay = image('icons/turf/mine_overlays.dmi', mineral_name)
 			overlays += mineral_overlay
 		icon_state = base_icon_state
 		if(!(edge_flags & EDGE_CARDINAL)) //old-style edges
@@ -436,10 +439,12 @@ var/list/icon_state_to_appearance = list()
 			var/mob/living/simple_animal/hostile/asteroid/rockernaut/R = new(src)
 			if(mineral)
 				R.possessed_ore = mineral.ore
+				R.possessed_ore_material = mineral.get_material_id()
 		if(TURF_CONTAINS_BOSS)
 			var/mob/living/simple_animal/hostile/asteroid/rockernaut/boss/R = new(src)
 			if(mineral)
 				R.possessed_ore = mineral.ore
+				R.possessed_ore_material = mineral.get_material_id()
 
 	//destroyed artifacts have weird, unpleasant effects
 	//make sure to destroy them before changing the turf though
@@ -470,10 +475,12 @@ var/list/icon_state_to_appearance = list()
 
 /turf/unsimulated/mineral/proc/GetScanState()
 	if(mineral)
-		var/mineral_name = mineral.display_name
-		if(rockernaut)
-			return "[has_icon('icons/turf/mine_overlays.dmi',"embed_[mineral_name]")?"embed_[mineral_name]":"embed_Iron"]"
-		return mineral_name
+		return mineral.get_scan_state(rockernaut ? TRUE : FALSE)
+	return null
+
+/turf/unsimulated/mineral/proc/GetScanColor()
+	if(mineral)
+		return mineral.get_scan_color()
 	return null
 
 /turf/unsimulated/mineral/dense
@@ -739,11 +746,13 @@ var/list/icon_state_to_appearance = list()
 		if(!name_to_mineral)
 			SetupMinerals()
 
-		var/mineral_name = pickweight(mineralSpawnChance[mineralPool]) //temp mineral name
+		// The pool includes procgen ores for wherever this turf is (asteroid or planet), see matsci_generator.dm
+		var/mineral_name = pickweight(matsci_get_spawn_pool(mineralPool, src)) //temp mineral name
 
 		if (mineral_name)
-			if(mineral_name in name_to_mineral)
-				mineral = name_to_mineral[mineral_name]
+			var/mineral/picked = matsci_find_mineral(mineral_name, src)
+			if(picked)
+				mineral = picked
 				mineral.UpdateTurf(src)
 			else
 				warning("Unknown mineral ID: [mineral_name]")

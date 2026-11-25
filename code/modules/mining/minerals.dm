@@ -8,6 +8,7 @@ var/list/name_to_mineral
 		if(!new_mineral.name)
 			continue
 		name_to_mineral[new_mineral.name] = new_mineral
+	matsci_generate_round_set() // Procedurally generated asteroid materials, see matsci_generator.dm
 	return 1
 
 /mineral
@@ -34,8 +35,27 @@ var/list/name_to_mineral
 /mineral/proc/UpdateTurf(var/turf/unsimulated/mineral/T)
 	T.UpdateMineral()
 
+/mineral/proc/drop_ore_stack(var/turf/unsimulated/mineral/T)
+	return drop_stack(ore, T, result_amount)
+
+/// Material ID carried by this deposit's ore, for ore types shared by several materials (procgen). Null otherwise.
+/mineral/proc/get_material_id()
+	return null
+
+/mineral/proc/get_overlay_image()
+	return image('icons/turf/mine_overlays.dmi', display_name)
+
+/// Icon state in mine_overlays.dmi shown by the mining scanner. embedded is TRUE when a rockernaut is hiding in the deposit.
+/mineral/proc/get_scan_state(var/embedded = FALSE)
+	if(embedded)
+		return has_icon('icons/turf/mine_overlays.dmi', "embed_[display_name]") ? "embed_[display_name]" : "embed_Iron"
+	return display_name
+
+/mineral/proc/get_scan_color()
+	return null
+
 /mineral/proc/DropMineral(var/turf/unsimulated/mineral/T)
-	var/obj/item/O = drop_stack(ore, T, result_amount)
+	var/obj/item/O = drop_ore_stack(T)
 	if(O.pixel_x != 0 && O.pixel_y != 0) //give it a little jiggle
 		O.pixel_x = rand(-16,16) * PIXEL_MULTIPLIER
 		O.pixel_y = rand(-16,16) * PIXEL_MULTIPLIER
